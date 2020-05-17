@@ -1,50 +1,52 @@
 #/usr/bin/env bash
-# This script has been developped to help the passage of some package from one set in your world set.
-# It should be used only if you use a set for "oneshoted" packages like me.
-# Otherwise, I don't think you need this. 
-# 
+# This script has been developped to add set filename from Portage sets folder into world set file.
+# If you use ONLY defaults sets (word, system, security, etc.) you should not need this script.
+
 # Author : lab0
-set=/etc/portage/sets/$1
-world=/var/lib/portage/world
+
+
+setPath=/etc/portage/sets
+worldSetsPath=/var/lib/portage/world_sets
 
 while :
-do
-	# Get size of set file
-	sizeOfSet=`ls -l $set | cut -d ' ' -f5`
-
-	# Check if set file is empty and exit if YES
-	if [ $sizeOfSet -eq 0 ]
+do	
+	# get all set known by emerge
+	worldSets=`cat /var/lib/portage/world_sets`
+	# create a regex to be compare with set folder
+	regex=`echo $worldSets | tr ' ' '|' | tr -d '\@'`
+	# extract all news sets from your set folder
+	sets=`ls $setPath | egrep -v "$regex"`
+	
+	# Check if extracted sets is empty and exit if it is
+	if [[ "$sets" == "" ]]
 	then
-		echo "$set is empty, bye."
+		echo "Non new(s) set(s) found, Bye."
 		exit 1
 	fi
-	# Extract list of package NOT in the world from given set
-	packages=`diff $world $set | grep '^>' | sed 's/^>\ //' | grep -v "#"`
-	echo $packages | tr ' ' '\n'
 
-	read -p "choose a package to add into world file (-q to stop, -a to all) : " choice
+	echo $sets
+	read -p "choose a set to add into world_sets (-q to stop, -a to all) : " choice
 	
 	# Quit properly 
 	if [[ "$choice" == "-q" ]]
 	then
 		echo "Bye."
 		exit 1
+	# Add all sets matched by regex
 	elif [[ "$choice" == "-a" ]]
 	then
-		cat $set >> $world
-		cat /dev/null > $set
-		echo "All packages have been added to world, bye."
+		for s in $sets
+		do
+			echo "@$s" >> "$worldSetsPath"
+		done
+		echo "All sets have been added to world_sets, Bye."
 		exit 1
+	# Add set if input user is valid
 	else
-		for p in $packages
+		for s in $sets
         	do
-			if [ "$p" == "$choice" ] ; then
-				echo "$p" >> $world
-				# cut package at / to be delete by sed using \/
-				# fp = first part ; lp = last part
-				fp=`echo $p | cut -d '/' -f1`
-				lp=`echo $p | cut -d '/' -f2`
-				sed -i "/$fp\/$lp/d" $set
+			if [ "$s" == "$choice" ] ; then
+				echo "@$s" >> "$worldSetsPath"
 				break
 			else
 				:

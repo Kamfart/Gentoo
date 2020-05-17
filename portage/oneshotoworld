@@ -1,0 +1,61 @@
+#/usr/bin/env bash
+# This script has been developped to manage oneshot set packages.
+# It should be used only if you use a set for "oneshoted" packages like me.
+# Otherwise, I don't think you need this. 
+# 
+# Author : lab0
+
+# get name of your "oneshot" set
+set=/etc/portage/sets/$1
+world=/var/lib/portage/world
+
+while :
+do
+	# Get size of set file
+	sizeOfSet=`ls -l $set | cut -d ' ' -f5`
+
+	# Check if set file is empty and exit if YES
+	if [ $sizeOfSet -eq 0 ]
+	then
+		echo "$set is empty, bye."
+		exit 1
+	fi
+	# Extract list of package NOT in the world from given set
+	packages=`diff $world $set | grep '^>' | sed 's/^>\ //' | grep -v "#"`
+	echo $packages | tr ' ' '\n'
+
+	read -p "choose a package to add into world file (-q to stop, -a to all) : " choice
+	
+	# Quit properly 
+	if [[ "$choice" == "-q" ]]
+	then
+		echo "Bye."
+		exit 1
+	# Add every package not present in world and flush oneshoted set
+	elif [[ "$choice" == "-a" ]]
+	then
+		for p in $packages
+		do
+			echo "$p" >> $world
+		done
+		cat /dev/null > $set
+		echo "All packages have been added to world, bye."
+		exit 1
+	else
+		for p in $packages
+        	do
+			if [ "$p" == "$choice" ] ; then
+				echo "$p" >> $world
+                                # split package at '/' car to be delete by sed using '\/'
+				# fp = first part ; lp = last part
+				fp=`echo $p | cut -d '/' -f1`
+				lp=`echo $p | cut -d '/' -f2`
+				sed -i "/$fp\/$lp/d" $set
+				break
+			else
+				:
+ 			fi
+        	done
+	fi
+done
+
