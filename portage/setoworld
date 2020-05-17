@@ -19,7 +19,7 @@ do
 		exit 1
 	fi
 	# Extract list of package NOT in the world from given set
-	packages=`diff $world $set | grep '^>' | sed 's/^>\ //'`
+	packages=`diff $world $set | grep '^>' | sed 's/^>\ //' | grep -v "#"`
 	echo $packages | tr ' ' '\n'
 
 	read -p "choose a package to add into world file (-q to stop, -a to all) : " choice
